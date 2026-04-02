@@ -1,8 +1,6 @@
 # OpenClaw Railway Template
 
-Deploy an [OpenClaw](https://openclaw.ai) AI agent gateway to [Railway](https://railway.app) in one click.
-
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/openclaw)
+Deploy an OpenClaw AI agent gateway to Railway.
 
 ## What is OpenClaw?
 
@@ -18,11 +16,9 @@ OpenClaw is an AI agent gateway powered by Anthropic's Claude. This template giv
 
 ### 1. Deploy to Railway
 
-Click the "Deploy on Railway" button above, or:
-
 1. Fork this repository
 2. Create a new project on [Railway](https://railway.app)
-3. Connect your forked repo
+3. Select **Deploy from GitHub repo** and connect your fork
 4. Add the required environment variables (see below)
 5. Deploy
 
@@ -34,21 +30,29 @@ In your Railway service settings, add the following variables:
 
 | Variable | Required | Description |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Yes | Your [Anthropic API key](https://console.anthropic.com/) for Claude |
-| `TELEGRAM_BOT_TOKEN` | Yes | Your Telegram bot token from [@BotFather](https://t.me/BotFather) |
+| `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key for Claude |
 | `OPENCLAW_GATEWAY_TOKEN` | Yes | A secret token for authenticating with the gateway API |
+| `TELEGRAM_BOT_TOKEN` | For Telegram | Telegram bot token from [@BotFather](https://t.me/BotFather) |
 | `OPENAI_API_KEY` | No | OpenAI API key for semantic memory embeddings |
-| `BRAVE_SEARCH_API_KEY` | No | [Brave Search API key](https://brave.com/search/api/) for web search |
+| `BRAVE_SEARCH_API_KEY` | No | Brave Search API key for web search capability |
 
-### 3. Access the Control UI
+### 3. Configure Networking
 
-Once deployed, your service will be available on port `18789`. Railway will assign a public URL automatically. Visit it to access the OpenClaw control UI.
+Railway does not expose services publicly by default. To access your gateway:
 
-Authenticate using your `OPENCLAW_GATEWAY_TOKEN`.
+1. Go to your service's **Settings** tab in Railway
+2. Under **Networking**, click **Generate Domain** to get a public URL
+3. Set the Railway **Port** variable to `18789`, or configure a custom domain
+
+The OpenClaw gateway listens on port `18789`.
+
+### 4. Access the Control UI
+
+Visit your Railway-assigned domain to access the OpenClaw control UI. Authenticate using your `OPENCLAW_GATEWAY_TOKEN`.
 
 ## Configuration
 
-The default configuration lives in `openclaw.json`:
+The default configuration template lives in `openclaw.json`:
 
 ```json
 {
@@ -79,14 +83,22 @@ The default configuration lives in `openclaw.json`:
 - **`channels.telegram.dmPolicy`** — Set to `"allowlist"` to restrict access or `"open"` to allow anyone.
 - **`agents.defaults.model`** — The default Claude model for agents.
 
-Config is seeded on first boot and persisted at `~/.openclaw/openclaw.json` inside the container. The `TELEGRAM_BOT_TOKEN` is injected automatically at startup from the environment variable.
+### Persistence warning
+
+Railway containers are **ephemeral** — the filesystem is wiped on every redeploy. This means:
+
+- The first-boot config seeding in `entrypoint.sh` runs on **every deploy**, resetting `~/.openclaw/openclaw.json` to the template defaults.
+- Any configuration changes made through the Control UI will be **lost on the next deploy**.
+- To make permanent config changes, edit `openclaw.json` in this repo and redeploy.
+
+If you need persistent runtime config, attach a [Railway volume](https://docs.railway.com/guides/volumes) mounted at `/root/.openclaw`.
 
 ## Project Structure
 
 ```
 .
 ├── Dockerfile          # Builds from the official OpenClaw image
-├── entrypoint.sh       # First-boot config seeding & token injection
+├── entrypoint.sh       # Config seeding & Telegram token injection on startup
 ├── openclaw.json       # Default configuration template
 └── .env.example        # Environment variable reference
 ```
@@ -94,9 +106,11 @@ Config is seeded on first boot and persisted at `~/.openclaw/openclaw.json` insi
 ## How It Works
 
 1. The `Dockerfile` pulls the official `ghcr.io/openclaw/openclaw:latest` image
-2. On first boot, `entrypoint.sh` copies the default config and injects your Telegram bot token
+2. On startup, `entrypoint.sh` seeds the default config and injects `TELEGRAM_BOT_TOKEN` if set
 3. `openclaw doctor --fix --yes` validates and auto-fixes the configuration
 4. The gateway starts and listens on port `18789`
+
+The `OPENCLAW_GATEWAY_TOKEN` and API key variables are read directly by the OpenClaw runtime — they do not appear in `entrypoint.sh`.
 
 ## Local Development
 
@@ -111,6 +125,12 @@ docker run --env-file .env -p 18789:18789 openclaw-gateway
 
 Visit `http://localhost:18789` to access the control UI.
 
-## License
+## Troubleshooting
 
-See the [OpenClaw documentation](https://openclaw.ai) for licensing details.
+| Problem | Likely cause |
+|---|---|
+| Gateway starts but Telegram bot doesn't respond | `TELEGRAM_BOT_TOKEN` is missing or invalid, or your Telegram user ID is not in `allowFrom` |
+| 401 Unauthorized from the gateway API | `OPENCLAW_GATEWAY_TOKEN` is missing or doesn't match your request |
+| Control UI unreachable after deploy | No public domain generated — see [Configure Networking](#3-configure-networking) |
+| Config changes lost after redeploy | Expected — Railway containers are ephemeral. Edit `openclaw.json` in the repo or attach a volume |
+| `openclaw doctor` fails on startup | Check Railway deploy logs. Usually caused by a malformed `openclaw.json` |
