@@ -2,7 +2,7 @@
 
 One-click deploy of [OpenClaw](https://openclaw.dev) on [Railway](https://railway.com) — a pre-configured gateway with Telegram channel support.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template/TODO)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/9MUg0t?referralCode=MPKvO7&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
 ## What You Get
 
