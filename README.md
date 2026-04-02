@@ -1,10 +1,10 @@
 # OpenClaw Railway Template
 
-**Template version:** 1.0.1
-
 One-click deploy of [OpenClaw](https://openclaw.dev) on [Railway](https://railway.com) — a pre-configured gateway with Telegram channel support.
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/9MUg0t?referralCode=MPKvO7&utm_medium=integration&utm_source=template&utm_campaign=generic)
+
+![Version](https://img.shields.io/badge/version-1.0.1-blue)
 
 ## What You Get
 
