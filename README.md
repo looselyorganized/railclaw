@@ -1,56 +1,90 @@
-# OpenClaw Railway Template
+# Deploy and Host RailClaw on Railway
 
-One-click deploy of [OpenClaw](https://openclaw.dev) on [Railway](https://railway.com) — a pre-configured gateway with Telegram channel support.
+RailClaw is an open-source AI agent gateway that connects language models to messaging channels like Telegram, WhatsApp, Discord, and Slack. It provides a single multiplexed endpoint for WebSocket and HTTP traffic, built-in auth, a control UI, and channel health monitoring out of the box.
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/railclaw-1?referralCode=MPKvO7&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
-![Version](https://img.shields.io/badge/version-1.0.1-blue)
+## About Hosting RailClaw
 
-## What You Get
+Hosting RailClaw requires a persistent process that stays online to maintain connections to messaging channels and handle incoming requests. The gateway needs API keys for your chosen LLM provider (Anthropic, OpenAI) and a secure gateway auth token.
 
-- OpenClaw gateway with token auth
-- Telegram bot channel (allowlist DM policy)
-- Health checks (`/health`, `/readyz`)
-- Auto-restart on failure (5 retries)
+Railway handles the container lifecycle, health checks, and automatic restarts — so the gateway stays available without manual intervention. Configuration is injected via environment variables at deploy time, with no files to manage.
 
-## Environment Variables
+## Common Use Cases
+
+- Run a personal AI assistant on Telegram with allowlist-based access control
+- Deploy a customer-facing conversational agent backed by Claude or GPT models
+- Host a multi-channel gateway that bridges AI models to messaging platforms like Telegram, WhatsApp, Discord, and Slack
+
+## Dependencies for RailClaw Hosting
 
 ### Required
 
-| Variable | Description |
-|----------|-------------|
-| `ANTHROPIC_API_KEY` | Powers the agent's conversational model (Claude) |
-| `OPENCLAW_GATEWAY_TOKEN` | Random string to secure gateway API access |
-| `TELEGRAM_BOT_TOKEN` | Bot token from [@BotFather](https://t.me/BotFather) |
-| `TELEGRAM_ALLOW_FROM` | Your Telegram user ID (comma-separated for multiple users) |
+- An Anthropic API key to power the agent's conversational model
+- A gateway auth token — any random string to secure API access
 
 ### Optional
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OPENCLAW_MODEL` | `anthropic/claude-sonnet-4-6` | Default agent model |
-| `TELEGRAM_DM_POLICY` | `allowlist` | DM access policy: `allowlist` or `open` |
-| `CONTROL_UI_ENABLED` | `true` | Enable gateway Control UI (true/false) |
-| `OPENAI_API_KEY` | — | Alternative LLM provider for GPT models (fallback if no Anthropic key) |
-| `BRAVE_API_KEY` | — | Enables the web_search tool for live web results |
+- An OpenAI API key for GPT models as a fallback provider
+- A Brave API key to enable the web_search tool
+- A custom model identifier (e.g. `anthropic/claude-sonnet-4-6`)
 
-## Volume
+### Deployment Dependencies
 
-This template attaches a persistent volume at `/root/.openclaw` to preserve config, conversation history, and agent state across redeploys.
+- https://docs.openclaw.ai
+- https://github.com/openclaw/openclaw
+- https://ghcr.io/openclaw/openclaw
+- Healthcheck path: `/health`
+- Volume mount: `/root/.openclaw`
 
-## How It Works
+## Implementation Details
 
-1. Railway builds the Docker image from `ghcr.io/openclaw/openclaw:latest`
-2. On first boot, the entrypoint seeds the default config
-3. Environment variables are injected into the config at startup
-4. `openclaw doctor --fix --yes` validates the config
-5. The gateway starts on port 18789 and Railway healthchecks `/health`
+This template deploys a minimal gateway with the Control UI enabled. To add channels (Telegram, WhatsApp, Discord, Slack), configure agents, or manage cron jobs after deployment, use the Control UI.
 
-## Local Development
+### Accessing the Control UI
 
-```bash
-cp .env.example .env
-# Fill in your values
-docker build -t openclaw-railway .
-docker run --env-file .env -p 18789:18789 openclaw-railway
+The gateway logs a tokenized dashboard URL on startup. To find it:
+
+1. Open your service in the Railway dashboard
+2. Click the **Deployments** tab
+3. Select the active deployment
+4. Look for the `Dashboard:` line in the logs
+
+The URL follows this pattern:
+
 ```
+https://<your-railway-domain>/#token=<your-OPENCLAW_GATEWAY_TOKEN>
+```
+
+The `#token=` fragment auto-fills authentication in the browser — just click and connect. The token is never sent to the server (URL fragments stay client-side).
+
+From the Control UI you can:
+
+- Chat with the agent directly
+- Configure channels — Telegram, WhatsApp, Discord, Slack, and more
+- Manage agents, sessions, and cron jobs
+- Edit gateway config live
+
+### Security Notes
+
+This template sets `dangerouslyDisableDeviceAuth: true` in the gateway config. This is required because OpenClaw's default device pairing flow requires CLI access to approve new browsers (`openclaw devices approve`), which isn't possible inside a Railway container.
+
+With this flag disabled, **token auth is the sole protection** for the Control UI. Your `OPENCLAW_GATEWAY_TOKEN` is effectively your admin password — treat it accordingly:
+
+- Use a strong, random token (64+ hex characters recommended)
+- Don't share the tokenized dashboard URL publicly
+- Rotate the token by updating the env var and redeploying
+
+### How It Works
+
+This template pulls the latest tag of the official OpenClaw Docker image (`ghcr.io/openclaw/openclaw:latest`), so every Railway deployment builds against the most current stable release.
+
+The gateway runs as a single containerized service with built-in health checks, automatic restart on failure, and all configuration injected via environment variables — no sidecar services, no manual config files.
+
+A persistent volume at `/root/.openclaw` preserves config, conversation history, and agent state across redeploys.
+
+## Why Deploy RailClaw on Railway?
+
+Railway is a singular platform to deploy your infrastructure stack. Railway will host your infrastructure so you don't have to deal with configuration, while allowing you to vertically and horizontally scale it.
+
+By deploying RailClaw on Railway, you are one step closer to supporting a complete full-stack application with minimal burden. Host your servers, databases, AI agents, and more on Railway.
