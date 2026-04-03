@@ -42,6 +42,12 @@ inject_config() {
       ];
     }
 
+    // Disable device pairing for remote (Railway) access
+    // Token auth still protects the gateway
+    c.gateway = c.gateway || {};
+    c.gateway.controlUi = c.gateway.controlUi || {};
+    c.gateway.controlUi.dangerouslyDisableDeviceAuth = true;
+
 
     fs.writeFileSync('$tmp', JSON.stringify(c, null, 2));
   "
