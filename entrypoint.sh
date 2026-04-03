@@ -56,5 +56,10 @@ echo "Running openclaw doctor..."
 openclaw doctor --fix --yes
 
 # --- Start gateway ---
+if [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ] && [ -n "${OPENCLAW_GATEWAY_TOKEN:-}" ]; then
+  echo ""
+  echo "Dashboard: https://${RAILWAY_PUBLIC_DOMAIN}/#token=${OPENCLAW_GATEWAY_TOKEN}"
+  echo ""
+fi
 echo "Starting OpenClaw gateway..."
 exec openclaw gateway
